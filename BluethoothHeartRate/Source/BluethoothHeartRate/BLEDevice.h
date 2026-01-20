@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <windows.devices.bluetooth.advertisement.h>
+
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "BLEDevice.generated.h"
@@ -16,6 +18,8 @@ class BLUETHOOTHHEARTRATE_API UBLEDevice : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable,Category="BLE")
-	static void StartBLEScan();
+	void StartBleScan();
+
+	ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisement* Advertisement;
 	
 };
