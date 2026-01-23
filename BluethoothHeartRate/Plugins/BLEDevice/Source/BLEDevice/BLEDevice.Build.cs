@@ -7,44 +7,7 @@ public class BLEDevice : ModuleRules
 {
 	public BLEDevice(ReadOnlyTargetRules Target) : base(Target)
 	{
-		if (Target.Platform == UnrealTargetPlatform.Win64)
-		{
-			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-			bEnableExceptions = true;
-			bUseUnity = false;
-			CppStandard = CppStandardVersion.Cpp20;
-
-			PublicIncludePaths.AddRange(
-				new string[]
-				{
-					// ... add public include paths required here ...
-				}
-			);
-			
-			// 1. Voeg de noodzakelijke Windows System Libraries toe voor WinRT
-			PublicSystemLibraries.AddRange(new string[] { 
-				"runtimeobject.lib",
-				"Synchronization.lib",
-				"shlwapi.lib" 
-			});
-			
-			// 2. Vertel UBT waar de WinRT headers in de Windows SDK staan
-			var windowsSdkDir = Target.WindowsPlatform.WindowsSdkDir;
-			var windowsSdkVersion = Target.WindowsPlatform.WindowsSdkVersion;
-			var cppWinRtPath = Path.Combine(windowsSdkDir, "Include", windowsSdkVersion, "cppwinrt");
-
-			PublicIncludePaths.Add(cppWinRtPath);
-			
-			// Optioneel: Definieer dat we WinRT gebruiken om conflicten te minimaliseren
-			PublicDefinitions.Add("WINRT_LEAN_AND_MEAN");
-		}
-
-		PrivateIncludePaths.AddRange(
-				new string[]
-				{
-					// ... add other private include paths required here ...
-				}
-			);
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 
 			PublicDependencyModuleNames.AddRange(
@@ -60,6 +23,7 @@ public class BLEDevice : ModuleRules
 				new string[]
 				{
 					"CoreUObject",
+					"WebSockets",
 					"Engine",
 					"Slate",
 					"SlateCore",

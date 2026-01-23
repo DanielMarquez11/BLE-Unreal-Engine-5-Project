@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 #include <windows.devices.bluetooth.advertisement.h>
 
 #include "CoreMinimal.h"
@@ -17,9 +18,13 @@ class BLUETHOOTHHEARTRATE_API UBLEDevice : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable,Category="BLE")
-	void StartBleScan();
+	uint64_t G_TargetDevice = 0;
+	ABI::Windows::Devices::Bluetooth::BluetoothLEDevice* G_Device{ nullptr };
+	ABI::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic* G_HeartRateChar{ nullptr };
+	std::atomic<uint8_t> G_LatestHeartRate = 0;
 
-	ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisement* Advertisement;
+	SOCKET S;
+	void RunTCPServer();
+	
 	
 };
