@@ -29,7 +29,7 @@ static void EnsureWinRT()
 	static std::once_flag Once;
 	std::call_once(Once, []()
 	{
-		winrt::init_apartment(winrt::apartment_type::multi_threaded);
+		init_apartment(winrt::apartment_type::single_threaded);
 	});
 }
 
@@ -91,7 +91,7 @@ void UBLESubsystem::StartScan()
 	Impl->ReceivedToken = Impl->Watcher.Received([this](BluetoothLEAdvertisementWatcher const&, BluetoothLEAdvertisementReceivedEventArgs const& Args)
 	{
 		const uint64 Address = Args.BluetoothAddress();
-		const int32 RSSI = static_cast<int32>(Args.RawSignalStrengthInDBm());
+		const int32 RSSI = Args.RawSignalStrengthInDBm();
 		FString Name;
         			try { Name = FString(Args.Advertisement().LocalName().c_str()); }
         			catch (...) { Name = TEXT(""); }
