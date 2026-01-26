@@ -120,3 +120,15 @@ void UBLESubsystem::StartScan()
 #endif
 	
 }
+
+void UBLESubsystem::StopScan()
+{
+}
+
+void UBLESubsystem::Connect(int64 BluetoothAddress)
+{
+}
+
+void UBLESubsystem::Disconnect()
+{
+}
