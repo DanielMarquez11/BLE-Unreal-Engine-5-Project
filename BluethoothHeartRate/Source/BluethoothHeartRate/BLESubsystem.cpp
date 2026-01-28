@@ -1,5 +1,7 @@
 #include "BLESubsystem.h"
 
+#include <iostream>
+
 #include "Async/Async.h"
 
 #if PLATFORM_WINDOWS
@@ -63,6 +65,21 @@ void UBLESubsystem::FImplDeleter::operator()(FImpl* Ptr) const
 	delete Ptr;
 }
 
+void UBLESubsystem::OnAdverReceived(
+	BluetoothLEAdvertisementWatcher watcher,
+	BluetoothLEAdvertisementReceivedEventArgs eventArgs)
+{
+	if (G_TargetDevice != 0) return;
+
+	G_TargetDevice = 232406127976466;
+	GEngine->AddOnScreenDebugMessage(
+	-1,
+	2.0f,
+	FColor::Red,
+	FString::Printf(TEXT("Connecting to device: %lld"), G_TargetDevice)
+);
+}
+
 #endif // PLATFORM_WINDOWS
 
 // Keep out-of-line because of Pimpl + UHT TU rules
@@ -99,6 +116,7 @@ void UBLESubsystem::StartScan()
         			AsyncTask(ENamedThreads::GameThread, [this, Address, Name, RSSI]()
         			{
         				OnDeviceFound.Broadcast(static_cast<int64>(Address), Name, RSSI);
+        				ConnectedAddress = Address;
         			});
 	});
 	Impl->Watcher.Stopped([this](BluetoothLEAdvertisementWatcher const&, BluetoothLEAdvertisementWatcherStoppedEventArgs const&)
@@ -127,8 +145,90 @@ void UBLESubsystem::StopScan()
 
 void UBLESubsystem::Connect(int64 BluetoothAddress)
 {
+#if PLATFORM_WINDOWS
+	EnsureWinRT();
+
+	if (!Impl)
+	{
+		OnError.Broadcast(TEXT("BLE subsystem not initialized"));
+		return;
+	}
+
+	if (Impl->bConnected)
+	{
+		return;
+	}
+
+	const uint64 Address = static_cast<uint64>(BluetoothAddress);
+
+	// Stop scanning first (best practice)
+	if (Impl->bScanning)
+	{
+		Impl->Watcher.Stop();
+		Impl->bScanning = false;
+		bIsScanning = false;
+	}
+
+	// Run WinRT async on background thread
+	Async(EAsyncExecution::Thread, [this, Address]()
+	{
+		try
+		{
+			auto DeviceOp = BluetoothLEDevice::FromBluetoothAddressAsync(Address);
+			BluetoothLEDevice Device = DeviceOp.get(); // blocks THIS worker thread, not game thread
+
+			if (!Device)
+			{
+				AsyncTask(ENamedThreads::GameThread, [this]()
+				{
+					OnError.Broadcast(TEXT("Failed to connect to BLE device"));
+				});
+				return;
+			}
+
+			Impl->Device = Device;
+			Impl->bConnected = true;
+			Impl->ConnectedAddressU64 = Address;
+			
+			FString DeviceName = FString(Device.Name().c_str());
+			if (DeviceName.IsEmpty())
+			{
+				DeviceName = TEXT("Unknown BLE Device");
+			}
+			AsyncTask(ENamedThreads::GameThread, [this, DeviceName, Address]()
+			{
+				OnConnected.Broadcast(static_cast<int64>(Address));
+			});
+		}
+		catch (winrt::hresult_error const& Error)
+		{
+			const FString ErrorMsg = FString::Printf(
+				TEXT("BLE connect error: %s"),
+				Error.message().c_str()
+			);
+
+			AsyncTask(ENamedThreads::GameThread, [this, ErrorMsg]()
+			{
+				OnError.Broadcast(ErrorMsg);
+			});
+		}
+	});
+#else
+	OnError.Broadcast(TEXT("BLE is only implemented for Windows"));
+#endif
 }
+
 
 void UBLESubsystem::Disconnect()
 {
+#if PLATFORM_WINDOWS
+	if (!Impl || !Impl->bConnected)
+	{
+		return;
+	}
+
+	Impl->ResetConnection();
+
+	OnDisconnected.Broadcast(ConnectedAddress);
+#endif
 }
